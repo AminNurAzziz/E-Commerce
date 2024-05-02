@@ -132,13 +132,14 @@ class TransaksiController {
 
     async getTransaksi(req, res) {
         try {
-            const user = req.user._id || '65b93b4f3b4839656e9c05b0';
+            const user = req.user.id;
 
             // Mengambil transaksi dari database dan memuat status transaksi
             const transaksi = await Transaksi.find({}).populate('Products.ProductID').select('+status');
 
             // Membuat array kosong untuk menampung produk yang dimiliki oleh pengguna
             const userProducts = [];
+
 
             // Memfilter produk yang dimiliki oleh pengguna
             transaksi.forEach(trx => {
@@ -158,6 +159,8 @@ class TransaksiController {
                 });
             });
 
+
+
             // Mengirimkan data transaksi beserta status
             res.status(200).json({
                 message: 'Berhasil menampilkan data transaksi',
@@ -168,6 +171,7 @@ class TransaksiController {
             res.status(500).json({ error: 'Gagal memproses permintaan' });
         }
     }
+
 
 
     async getTransaksiUser(req, res) {
@@ -217,11 +221,32 @@ class TransaksiController {
         // const transaksi = await Transaksi.find({ 'Products.ProductID.sellerID': adminUserID }).populate('Products.ProductID');
         const transaksi = await Transaksi.find({}).select('-status').populate('Products.ProductID').populate('user');
 
-        const adminTransaksi = transaksi.filter(trx => trx.Products.some(product => product.ProductID.sellerID.toString() === adminUserID));
+        const adminTransaksi = transaksi.filter(trx => {
+            let isSeller = false;
+            trx.Products.forEach(product => {
+                if (product.ProductID.sellerID.toString() === adminUserID) {
+                    isSeller = true;
+                    console.log('product:', product);
+                }
+            });
+            return isSeller;
+        });
+
+        const responseFilter = adminTransaksi.map(trx => {
+            const products = trx.Products.filter(product => product.ProductID.sellerID.toString() === adminUserID);
+            return {
+                transaksiId: trx._id,
+                kode_transaksi: trx.kode_transaksi,
+                user: trx.user,
+                products: products,
+                total: trx.total,
+                status: trx.status
+            };
+        });
 
         res.status(200).json({
             message: 'Berhasil menampilkan data transaksi admin',
-            data: adminTransaksi
+            data: responseFilter
         });
     }
 
