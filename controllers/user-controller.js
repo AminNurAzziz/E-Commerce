@@ -1,6 +1,9 @@
 const User = require('../models/user-schema');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
+const crypto = require('crypto'); // Add crypto for generating reset tokens
+const ejs = require('ejs');
 
 class UserController {
     static async register(req, res, next) {
@@ -129,20 +132,105 @@ class UserController {
         }
     }
 
-    // static async logout(req, res, next) {
-    //     try {
-    //         res.clearCookie('accessToken');
-    //         res.status(200).json({
-    //             error: false,
-    //             message: 'Logout success'
-    //         });
-    //     } catch (error) {
-    //         res.status(500).json({
-    //             error: true,
-    //             message: error.message
-    //         });
-    //     }
-    // }
+    static async forgotPassword(req, res, next) {
+        try {
+            const { email } = req.body;
+            console.log(req.body);
+            const user = await User.findOne({ email });
+            if (!user) {
+                const error = new Error('Email not found');
+                error.statusCode = 404;
+                throw error;
+            }
+
+            // Generate a reset token and expiration time
+            const resetToken = crypto.randomBytes(3).toString('hex');
+            const resetTokenExpiration = Date.now() + 6000000; // 1 jam
+            console.log(resetToken);
+
+            user.resetPasswordToken = resetToken;
+            user.resetPasswordExpires = resetTokenExpiration;
+            await user.save();
+
+            // Set up nodemailer
+            const transporter = nodemailer.createTransport({
+                service: 'Gmail',
+                auth: {
+                    user: process.env.EMAIL_USER,
+                    pass: process.env.EMAIL_PASS
+                }
+            });
+            const emailTemplate = await ejs.renderFile('./views/resetPasswordEmail.ejs', { fullName: user.fullName, resetToken: resetToken });
+            console.log(emailTemplate);
+            const mailOptions = {
+                to: user.email,
+                from: process.env.EMAIL_USER,
+                subject: 'Password Reset',
+                html: emailTemplate
+            };
+
+            await transporter.sendMail(mailOptions);
+
+            res.status(200).json({
+                error: false,
+                message: 'An email has been sent to ' + user.email + ' with further instructions.'
+            });
+        } catch (error) {
+            res.status(500).json({
+                error: true,
+                message: error.message
+            });
+        }
+    }
+
+    // Reset password method
+    static async newPassword(req, res, next) {
+        try {
+            const { token, newPassword } = req.body;
+            const user = await User.findOne({
+                resetPasswordToken: token,
+                resetPasswordExpires: { $gt: Date.now() } // Ensure the token is still valid
+            });
+
+            if (!user) {
+                const error = new Error('Password reset token is invalid or has expired');
+                error.statusCode = 400;
+                throw error;
+            }
+
+            const hash = await bcrypt.hash(newPassword, 12);
+            user.password = hash;
+            user.resetPasswordToken = undefined;
+            user.resetPasswordExpires = undefined;
+            await user.save();
+
+            res.status(200).json({
+                error: false,
+                message: 'Password has been reset successfully'
+            });
+        } catch (error) {
+            res.status(500).json({
+                error: true,
+                message: error.message
+            });
+        }
+    }
+
+    static async logout(req, res, next) {
+        try {
+            res.clearCookie('accessToken');
+            res.status(200).json({
+                error: false,
+                message: 'Logout success'
+            });
+        } catch (error) {
+            res.status(500).json({
+                error: true,
+                message: error.message
+            });
+        }
+    }
+
 
 }
 

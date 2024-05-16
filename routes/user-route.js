@@ -19,9 +19,13 @@ router.route('/login')
 router.route('/reset-password')
   .patch(checkAuth, checkAuthor, userController.resetPassword);
 
+router.post('/forgot-password', userController.forgotPassword);
+
+router.post('/new-password', userController.newPassword);
+
 // Logout
-// router.route('/logout')
-//   .post(userController.logout);
+router.route('/logout')
+  .post(userController.logout);
 
 
 

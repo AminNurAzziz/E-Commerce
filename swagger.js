@@ -151,6 +151,84 @@ function getUserPaths() {
                 },
             },
         },
+        '/user/forgot-password': {
+            post: {
+                summary: 'Forgot password.',
+                operationId: 'forgotPassword',
+                description: 'Endpoint to reset user password.',
+                tags: ['User'],
+                requestBody: {
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    email: { type: 'string' },
+                                },
+                                required: ['email'],
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    200: {
+                        description: 'Password reset email sent.',
+                    },
+                    500: {
+                        description: 'Internal Server Error.',
+                    },
+                },
+            },
+        },
+        '/user/new-password': {
+            post: {
+                summary: 'New password.',
+                operationId: 'newPassword',
+                description: 'Endpoint to reset user password.',
+                tags: ['User'],
+                requestBody: {
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    token: { type: 'string' },
+                                    newPassword: { type: 'string' },
+                                },
+                                required: ['token', 'newPassword'],
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    200: {
+                        description: 'Password reset successfully.',
+                    },
+                    401: {
+                        description: 'Invalid token.',
+                    },
+                    500: {
+                        description: 'Internal Server Error.',
+                    },
+                },
+            },
+        },
+        '/user/logout': {
+            post: {
+                summary: 'User logout.',
+                operationId: 'logout',
+                description: 'Endpoint to logout user.',
+                tags: ['User'],
+                responses: {
+                    200: {
+                        description: 'User logged out successfully.',
+                    },
+                    500: {
+                        description: 'Internal Server Error.',
+                    },
+                },
+            },
+        },
     };
 }
 

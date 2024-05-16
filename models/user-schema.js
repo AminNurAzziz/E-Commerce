@@ -30,6 +30,12 @@ const UserSchema = new Schema({
         required: false,
         default: 'No Shop Name',
     },
+    resetPasswordToken: {
+        type: String,
+    },
+    resetPasswordExpires: {
+        type: Date,
+    },
 });
 
 UserSchema.plugin(passportLocalMongoose, { usernameField: 'email' });
